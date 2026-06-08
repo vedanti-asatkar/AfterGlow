@@ -69,3 +69,4 @@ A hand-curated dataset of 51 titles across anime, books, and web series — each
 ## ✦ Author
 
 **Vedanti Asatkar** — [GitHub](https://github.com/vedanti-asatkar)
+🌐 **Live Demo:** [afterglow-app.streamlit.app](https://afterglow-app.streamlit.app)
