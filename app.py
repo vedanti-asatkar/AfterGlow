@@ -1,9 +1,38 @@
+import sqlite3
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 # from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+
+def init_db():
+    conn = sqlite3.connect("feedback.db")
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mood TEXT,
+            recommended_title TEXT,
+            feedback TEXT,
+            timestamp TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_feedback(mood, title, feedback):
+    conn = sqlite3.connect("feedback.db")
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO feedback (mood, recommended_title, feedback, timestamp)
+        VALUES (?, ?, ?, ?)
+    """, (mood, title, feedback, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
+
+init_db()
 
 st.markdown("""
     <style>
@@ -137,8 +166,11 @@ if clicked:
     </div>
 """, unsafe_allow_html=True)
     else:
-        results=recommend(mood)
-        st.markdown("""
+        st.session_state.results = recommend(mood)
+        st.session_state.mood = mood
+
+if "results" in st.session_state and st.session_state.results is not None:
+    st.markdown("""
     <div style="background-color:#2a1f2e; border-left: 3px solid #f5b8c9; 
     padding:12px 20px; border-radius:12px; margin-bottom:16px;">
         <p style="color:#f5b8c9; margin:0; font-size:1rem;">
@@ -146,11 +178,20 @@ if clicked:
         </p>
     </div>
 """, unsafe_allow_html=True)
-        for i, row in results.iterrows():
-            st.markdown(f"""
-            <div class="card">
-                <h4 style="color:#f5b8c9; margin:0">{i+1}. {row['title']} <span style="font-size:0.8rem; color:#e8d5e8;">— {row['type']}</span></h4>
-                <p style="color:#c9a8c9; margin:8px 0 4px 0; font-size:0.85rem;">✦ mood: {row['mood_tags']}</p>
-                <p style="color:#c9a8c9; margin:0; font-size:0.85rem;">✦ tone: {row['emotional_tone']}</p>
-            </div>
-    """, unsafe_allow_html=True)
+    for i, row in st.session_state.results.iterrows():
+        st.markdown(f"""
+        <div class="card">
+            <h4 style="color:#f5b8c9; margin:0">{i+1}. {row['title']} <span style="font-size:0.8rem; color:#e8d5e8;">— {row['type']}</span></h4>
+            <p style="color:#c9a8c9; margin:8px 0 4px 0; font-size:0.85rem;">✦ mood: {row['mood_tags']}</p>
+            <p style="color:#c9a8c9; margin:0; font-size:0.85rem;">✦ tone: {row['emotional_tone']}</p>
+        </div>
+""", unsafe_allow_html=True)
+        col_a, col_b, col_c = st.columns([2, 2, 6])
+        with col_a:
+            if st.button("👍", key=f"up_{i}_{row['title']}"):
+                save_feedback(st.session_state.mood, row['title'], "positive")
+                st.success("saved!")
+        with col_b:
+            if st.button("👎", key=f"down_{i}_{row['title']}"):
+                save_feedback(st.session_state.mood, row['title'], "negative")
+                st.success("saved!")
