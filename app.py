@@ -91,9 +91,11 @@ def recommend(mood, top_n=5):
     results = []
     for idx in top_indices:
         title = df.iloc[idx]["title"]
+        entry_type = df.iloc[idx]["type"]
         # skip if title is mentioned in mood description
         if title.lower() not in mood.lower():
-            results.append(idx)
+            if filter_type=='all' or entry_type==filter_type:
+                results.append(idx)
         if len(results) == top_n:
             break
     
@@ -118,6 +120,10 @@ st.markdown("""
 st.markdown("<p style='text-align:center; color:#e8d5e8; font-size:0.9rem; letter-spacing:1px;'>describe your mood or what you've finished watching.</p>", unsafe_allow_html=True)
 mood = st.text_area("", placeholder="i just finished attack on titan and i feel empty...")
 
+filter_type=st.selectbox(
+    "filter by type(optional)", 
+    ["all", "anime", "web series", "book", "movie"]
+)
 col1, col2, col3 = st.columns([2, 2, 2])
 with col2:
     clicked = st.button("find my new obsession ✦")
