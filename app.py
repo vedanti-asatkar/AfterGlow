@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
+# from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
+from sentence_transformers import SentenceTransformer
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 st.markdown("""
@@ -73,15 +75,17 @@ st.markdown("""
 df=pd.read_csv("afterglow_dataset.csv")
 
 df["combined"]=(df["mood_tags"]+" "+ df["description"]+ " " + df["after_watch_suggests"] + " " + df["emotional_tone"])
-custom_stops={"watch", "something", "like", "equally", "feel", "want"}
-all_stops=ENGLISH_STOP_WORDS | custom_stops
-vectorizer=TfidfVectorizer(stop_words=list(all_stops))
-tf_idf_matrix=vectorizer.fit_transform(df["combined"])
+# custom_stops={"watch", "something", "like", "equally", "feel", "want"}
+# all_stops=ENGLISH_STOP_WORDS | custom_stops
+# vectorizer=TfidfVectorizer(stop_words=list(all_stops))
+# tf_idf_matrix=vectorizer.fit_transform(df["combined"])
+model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = model.encode(df["combined"].tolist(), show_progress_bar=True)
 
 # recommendation function
 def recommend(mood, top_n=5):
-    user_vector = vectorizer.transform([mood])
-    similarities = cosine_similarity(user_vector, tf_idf_matrix).flatten()
+    mood_embedding=model.encode([mood])
+    similarities = cosine_similarity(mood_embedding, embeddings).flatten()
     top_indices = similarities.argsort()[::-1]
     
     results = []
